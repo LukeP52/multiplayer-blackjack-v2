@@ -203,7 +203,6 @@ struct PracticeView: View {
                        ((practiceGame.state.phase == .practiceDealing && practiceGame.canShowDealButton) || 
                         (practiceGame.state.phase == .practiceFeedback && practiceGame.canShowDealButton && !showFeedback)) {
                         Button(action: {
-                            print("Deal button clicked")
                             practiceGame.handleDealButton()
                         }) {
                             Text("Deal")

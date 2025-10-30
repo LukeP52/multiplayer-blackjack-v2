@@ -8,7 +8,7 @@ struct WelcomeView: View {
     @State private var showErrorAlert = false
     @State private var errorMessage = ""
     @State private var destinationView: String?
-    @State private var showCustomerCenter = false // New state for Customer Center
+    @State private var showSettings = false // New state for Settings
     
     var body: some View {
         NavigationStack {
@@ -105,7 +105,7 @@ struct WelcomeView: View {
                         }
                         
                         Button(action: {
-                            showCustomerCenter = true
+                            showSettings = true
                         }) {
                             Image(systemName: "gearshape.fill")
                                 .resizable()
@@ -127,8 +127,8 @@ struct WelcomeView: View {
                     PracticeView(blackjackGame: game).navigationBarBackButtonHidden(true)
                 }
                 
-                .sheet(isPresented: $showCustomerCenter) {
-                    CustomerCenterView()
+                .sheet(isPresented: $showSettings) {
+                    SettingsView()
                         .onDisappear {
                             // Reset all navigation state
                             navigateToBlackjackView = false
