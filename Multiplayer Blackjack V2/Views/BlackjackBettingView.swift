@@ -1,12 +1,28 @@
 import SwiftUI
 
 struct BlackjackBettingView: View {
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @ObservedObject var game: BlackjackGame
     @Binding var isPlaceBetDisabled: Bool
 
     var body: some View {
         GeometryReader { geometry in
-            VStack {
+            let screenType: ScreenType = {
+                if horizontalSizeClass == .compact {
+                    return .phone
+                } else if geometry.size.width < 900 {
+                    return .miniTablet
+                } else {
+                    return .tablet
+                }
+            }()
+            VStack(spacing: {
+                switch screenType {
+                case .phone: return 10
+                case .miniTablet: return 15
+                case .tablet: return 25
+                }
+            }()) {
                 // Chips
                 ScrollableChipView(
                     selectedChipValue: Binding(
@@ -27,15 +43,39 @@ struct BlackjackBettingView: View {
                     .frame(height: 30)
 
                 // Action buttons
-                HStack(spacing: 15) {
+                HStack(spacing: {
+                    switch screenType {
+                    case .phone: return 15
+                    case .miniTablet: return 25
+                    case .tablet: return 40
+                    }
+                }()) {
                     Button(action: {
                         game.clearBet()
                     }) {
                         Text("Clear")
-                            .font(.system(size: 24, weight: .heavy))
+                            .font(.system(size: {
+                                switch screenType {
+                                case .phone: return 24
+                                case .miniTablet: return 28
+                                case .tablet: return 32
+                                }
+                            }(), weight: .heavy))
                             .foregroundColor(.white)
                             .shadow(color: .black, radius: 1, x: 0, y: 0)
-                            .frame(width: 128, height: 55)
+                            .frame(width: {
+                                switch screenType {
+                                case .phone: return 128
+                                case .miniTablet: return 165
+                                case .tablet: return 200
+                                }
+                            }(), height: {
+                                switch screenType {
+                                case .phone: return 55
+                                case .miniTablet: return 70
+                                case .tablet: return 85
+                                }
+                            }())
                             .background(
                                 ZStack {
                                     Color.gold
@@ -66,10 +106,28 @@ struct BlackjackBettingView: View {
                         game.confirmBet()
                     }) {
                         Text("Place Bet")
-                            .font(.system(size: 24, weight: .heavy))
+                            .font(.system(size: {
+                                switch screenType {
+                                case .phone: return 24
+                                case .miniTablet: return 28
+                                case .tablet: return 32
+                                }
+                            }(), weight: .heavy))
                             .foregroundColor(.white)
                             .shadow(color: .black, radius: 1, x: 0, y: 0)
-                            .frame(width: 128, height: 55)
+                            .frame(width: {
+                                switch screenType {
+                                case .phone: return 128
+                                case .miniTablet: return 165
+                                case .tablet: return 200
+                                }
+                            }(), height: {
+                                switch screenType {
+                                case .phone: return 55
+                                case .miniTablet: return 70
+                                case .tablet: return 85
+                                }
+                            }())
                             .background(
                                 ZStack {
                                     Color.richBlack

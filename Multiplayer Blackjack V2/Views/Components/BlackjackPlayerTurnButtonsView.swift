@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct BlackjackPlayerTurnButtonsView: View {
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     let game: BlackjackGame
     let onDouble: () -> Void
     @State private var correctActionToFlash: BasicStrategyAction? = nil
@@ -16,12 +17,27 @@ struct BlackjackPlayerTurnButtonsView: View {
         GeometryReader { geometry in
             ZStack {
                 // Action buttons in their original position
-                HStack(spacing: 8) {
+                let screenType: ScreenType = {
+                    if horizontalSizeClass == .compact {
+                        return .phone
+                    } else if geometry.size.width < 900 {
+                        return .miniTablet
+                    } else {
+                        return .tablet
+                    }
+                }()
+                HStack(spacing: {
+                    switch screenType {
+                    case .phone: return 8
+                    case .miniTablet: return 15
+                    case .tablet: return 25
+                    }
+                }()) {
                     if game.canSplit() {
                         ActionButton(title: "Split", color: .richRed, action: {
                             clearHighlight()
                             game.split()
-                        }, isFlashing: correctActionToFlash == .split)
+                        }, isFlashing: correctActionToFlash == .split, screenType: screenType)
                     }
                     
                     if game.canDoubleDown() {
@@ -29,21 +45,21 @@ struct BlackjackPlayerTurnButtonsView: View {
                             clearHighlight()
                             game.doubleDown()
                             onDouble()
-                        }, isFlashing: correctActionToFlash == .double)
+                        }, isFlashing: correctActionToFlash == .double, screenType: screenType)
                     }
                     
                     if game.canStand() {
                         ActionButton(title: "Stand", color: .gold, action: {
                             clearHighlight()
                             game.stand()
-                        }, isFlashing: correctActionToFlash == .stand)
+                        }, isFlashing: correctActionToFlash == .stand, screenType: screenType)
                     }
                     
                     if game.canHit() {
                         ActionButton(title: "Hit", color: .richBlack, action: {
                             clearHighlight()
                             game.hit()
-                        }, isFlashing: correctActionToFlash == .hit)
+                        }, isFlashing: correctActionToFlash == .hit, screenType: screenType)
                     }
                 }
                 .frame(maxWidth: min(geometry.size.width * 0.9, 400))
@@ -75,14 +91,38 @@ struct BlackjackPlayerTurnButtonsView: View {
                         }
                     }) {
                         Text("?")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.system(size: {
+                                switch screenType {
+                                case .phone: return 24
+                                case .miniTablet: return 28
+                                case .tablet: return 32
+                                }
+                            }(), weight: .bold))
                             .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
+                            .frame(width: {
+                                switch screenType {
+                                case .phone: return 40
+                                case .miniTablet: return 50
+                                case .tablet: return 60
+                                }
+                            }(), height: {
+                                switch screenType {
+                                case .phone: return 40
+                                case .miniTablet: return 50
+                                case .tablet: return 60
+                                }
+                            }())
                             .background(Circle().fill(Color.white.opacity(0.2)))
                             .overlay(Circle().stroke(Color.white, lineWidth: 1))
                     }
                     .buttonStyle(ScaleButtonStyle())
-                    .position(x: geometry.size.width / 2, y: geometry.size.height * 0.75 + 60)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height * 0.75 + {
+                        switch screenType {
+                        case .phone: return 60
+                        case .miniTablet: return 75
+                        case .tablet: return 90
+                        }
+                    }())
                 }
             }
         }
@@ -93,14 +133,33 @@ struct BlackjackPlayerTurnButtonsView: View {
         let color: Color
         let action: () -> Void
         let isFlashing: Bool
+        let screenType: ScreenType
         
         var body: some View {
             Button(action: action) {
                 Text(title)
-                    .font(.system(size: 24, weight: .heavy))
+                    .font(.system(size: {
+                        switch screenType {
+                        case .phone: return 24
+                        case .miniTablet: return 28
+                        case .tablet: return 32
+                        }
+                    }(), weight: .heavy))
                     .foregroundColor(.white)
                     .shadow(color: .black, radius: 1, x: 0, y: 0)
-                    .frame(width: 90, height: 50)
+                    .frame(width: {
+                        switch screenType {
+                        case .phone: return 90
+                        case .miniTablet: return 105
+                        case .tablet: return 130
+                        }
+                    }(), height: {
+                        switch screenType {
+                        case .phone: return 50
+                        case .miniTablet: return 65
+                        case .tablet: return 80
+                        }
+                    }())
                     .background(
                         ZStack {
                             color

@@ -1,5 +1,10 @@
 import SwiftUI
 
+// Screen type for responsive design
+enum ScreenType {
+    case phone, miniTablet, tablet
+}
+
 // Custom color for green felt
 extension Color {
     static let greenFelt = Color(red: 61/255, green: 107/255, blue: 61/255) // #3D6B3D
@@ -16,8 +21,102 @@ extension Color {
 
 struct BlackjackView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @ObservedObject var game: BlackjackGame
     @State private var showingQuitAlert = false
+    
+    private func getScreenType(for geometry: GeometryProxy) -> ScreenType {
+        if horizontalSizeClass == .compact {
+            return .phone
+        } else if geometry.size.width < 900 {
+            return .miniTablet
+        } else {
+            return .tablet
+        }
+    }
+    
+    private func getButtonWidth(for screenType: ScreenType, geometry: GeometryProxy) -> CGFloat {
+        switch screenType {
+        case .phone: return 320
+        case .miniTablet: return min(geometry.size.width * 0.75, 450)
+        case .tablet: return min(geometry.size.width * 0.8, 600)
+        }
+    }
+    
+    private func getButtonHeight(for screenType: ScreenType) -> CGFloat {
+        switch screenType {
+        case .phone: return 50
+        case .miniTablet: return 65
+        case .tablet: return 80
+        }
+    }
+    
+    private func getButtonYPosition(for screenType: ScreenType, type: String) -> CGFloat {
+        switch type {
+        case "playerTurn":
+            switch screenType {
+            case .phone: return 0.82
+            case .miniTablet: return 0.78
+            case .tablet: return 0.70
+            }
+        case "resolution":
+            switch screenType {
+            case .phone: return 0.84
+            case .miniTablet: return 0.80
+            case .tablet: return 0.72
+            }
+        default: return 0.82
+        }
+    }
+    
+    private func getSpacing(for screenType: ScreenType) -> CGFloat {
+        switch screenType {
+        case .phone: return 8
+        case .miniTablet: return 20
+        case .tablet: return 30
+        }
+    }
+    
+    private func getFontSize(for screenType: ScreenType) -> CGFloat {
+        switch screenType {
+        case .phone: return 24
+        case .miniTablet: return 28
+        case .tablet: return 32
+        }
+    }
+    
+    private func getResolutionButtonWidth(for screenType: ScreenType) -> CGFloat {
+        switch screenType {
+        case .phone: return 150
+        case .miniTablet: return 185
+        case .tablet: return 220
+        }
+    }
+    
+    private func getResetBankrollButtonWidth(for screenType: ScreenType) -> CGFloat {
+        switch screenType {
+        case .phone: return 200
+        case .miniTablet: return 240
+        case .tablet: return 280
+        }
+    }
+    
+    private func getIconPadding() -> CGFloat {
+        switch horizontalSizeClass {
+        case .compact: return -10
+        case .regular: return 150  // Use full iPad padding for all regular size classes
+        default: return -10
+        }
+    }
+    
+    private func getBalanceYPosition(for geometry: GeometryProxy) -> CGFloat {
+        if horizontalSizeClass == .compact {
+            return 0.2
+        } else {
+            // Align balance with icon height (150px padding ≈ 0.26 on iPad)
+            return 0.26
+        }
+    }
     @State private var showPlayerTurnButtons = false
     @State private var flippedCards: Set<UUID> = []
     @State private var handNotificationOpacities: [Int: Double] = [:]
@@ -42,21 +141,38 @@ struct BlackjackView: View {
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()
 
-            // Info Button (in its own ZStack layer)
+            // Info and Home Icons (in same container for consistent positioning)
             GeometryReader { geometry in
-                Button(action: {
-                    showInfoView = true
-                }) {
-                    Image(systemName: "info.circle.fill")
-                        .resizable()
-                        .frame(width: 28, height: 28)
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 2)
+                HStack {
+                    // Info Button (left side)
+                    Button(action: {
+                        showInfoView = true
+                    }) {
+                        Image(systemName: "info.circle.fill")
+                            .resizable()
+                            .frame(width: 28, height: 28)
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 2)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.leading, 100)
+                    
+                    Spacer()
+                    
+                    // Home Button (right side)
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "house.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 28, height: 28)
+                            .foregroundColor(.white)
+                            .shadow(radius: 3)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.trailing, 100)
                 }
-                .buttonStyle(ScaleButtonStyle())
-                .padding(.top, -10)
-                .padding(.leading, 100)
-                .zIndex(100)  // Ensure it's above other elements
+                .padding(.top, getIconPadding())
+                .zIndex(100)  // Ensure both are above other elements
             }
 
             // Main game content
@@ -70,7 +186,8 @@ struct BlackjackView: View {
                             .foregroundColor(.white)
                             .frame(height: 40)
                             .frame(maxWidth: .infinity, alignment: .center)
-                            .position(x: geometry.size.width / 2, y: geometry.size.height * 0.2)
+                            .position(x: geometry.size.width / 2, 
+                                     y: geometry.size.height * getBalanceYPosition(for: geometry))
 
                         // Game content
                         VStack {
@@ -136,7 +253,15 @@ struct BlackjackView: View {
                         Capsule()
                             .stroke(Color.white.opacity(0.5), lineWidth: 1)
                     )
-                    .position(x: geometry.size.width / 2, y: geometry.size.height * 0.97)
+                    .position(x: geometry.size.width / 2, 
+                             y: geometry.size.height * {
+                                let screenType = getScreenType(for: geometry)
+                                switch screenType {
+                                case .phone: return 0.97
+                                case .miniTablet: return 0.92
+                                case .tablet: return 0.88
+                                }
+                             }())
                     .zIndex(50)
 
                     // Betting UI (shown only during betting phase)
@@ -156,26 +281,31 @@ struct BlackjackView: View {
                     }
                     // Player turn action buttons (Hit, Stand, Double, Split)
                     if game.state.phase == .playerTurn && showPlayerTurnButtons {
+                        let screenType = getScreenType(for: geometry)
                         BlackjackPlayerTurnButtonsView(game: game, onDouble: {
                             showPlayerTurnButtons = false
                         })
-                        .frame(width: 320, height: 50)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.82)
+                        .frame(width: getButtonWidth(for: screenType, geometry: geometry), 
+                               height: getButtonHeight(for: screenType))
+                        .position(x: geometry.size.width / 2, 
+                                 y: geometry.size.height * getButtonYPosition(for: screenType, type: "playerTurn"))
                         .zIndex(100)  // Ensure it's above other elements
                     }
                     // Resolution UI (Change Bet / Repeat Bet buttons)
                     if game.state.phase == .resolution && showResolutionButtons && game.state.playerBalance > 0 {
-                        HStack(spacing: 8) {
+                        let screenType = getScreenType(for: geometry)
+                        HStack(spacing: getSpacing(for: screenType)) {
                             // Always show Change Bet
                             Button(action: {
                                 isChangeBetDisabled = true
                                 game.changeBet()
                             }) {
                                 Text("Change Bet")
-                                    .font(.system(size: 24, weight: .heavy))
+                                    .font(.system(size: getFontSize(for: screenType), weight: .heavy))
                                     .foregroundColor(.white)
                                     .shadow(color: .black, radius: 1, x: 0, y: 0)
-                                    .frame(width: 150, height: 50)
+                                    .frame(width: getResolutionButtonWidth(for: screenType), 
+                                           height: getButtonHeight(for: screenType))
                                     .background(
                                         ZStack {
                                             Color.gold
@@ -208,10 +338,11 @@ struct BlackjackView: View {
                                     game.repeatBet()
                                 }) {
                                     Text("Repeat Bet")
-                                        .font(.system(size: 24, weight: .heavy))
+                                        .font(.system(size: getFontSize(for: screenType), weight: .heavy))
                                         .foregroundColor(.white)
                                         .shadow(color: .black, radius: 1, x: 0, y: 0)
-                                        .frame(width: 150, height: 50)
+                                        .frame(width: getResolutionButtonWidth(for: screenType), 
+                                               height: getButtonHeight(for: screenType))
                                         .background(
                                             ZStack {
                                                 Color.richBlack
@@ -238,13 +369,16 @@ struct BlackjackView: View {
                                 .buttonStyle(ScaleButtonStyle())
                             }
                         }
-                        .frame(width: 320, height: 50)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.84)
+                        .frame(width: getButtonWidth(for: screenType, geometry: geometry), 
+                               height: getButtonHeight(for: screenType))
+                        .position(x: geometry.size.width / 2, 
+                                 y: geometry.size.height * getButtonYPosition(for: screenType, type: "resolution"))
                         .zIndex(100)  // Ensure it's above other elements
                     }
 
                     // Reset Bankroll button (only shown when balance is 0 and after a hand)
                     if game.state.phase == .resolution && game.state.playerBalance == 0 {
+                        let screenType = getScreenType(for: geometry)
                         Button(action: {
                             game.resetBankroll()
                             // Clear states after animation completes
@@ -257,10 +391,11 @@ struct BlackjackView: View {
                             }
                         }) {
                             Text("Reset Bankroll")
-                                .font(.system(size: 24, weight: .heavy))
+                                .font(.system(size: getFontSize(for: screenType), weight: .heavy))
                                 .foregroundColor(.white)
                                 .shadow(color: .black, radius: 1, x: 0, y: 0)
-                                .frame(width: 200, height: 50)
+                                .frame(width: getResetBankrollButtonWidth(for: screenType), 
+                                       height: getButtonHeight(for: screenType))
                                 .background(
                                     ZStack {
                                         Color.gold
@@ -284,7 +419,8 @@ struct BlackjackView: View {
                                 )
                         }
                         .buttonStyle(ScaleButtonStyle())
-                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.84)
+                        .position(x: geometry.size.width / 2, 
+                                 y: geometry.size.height * getButtonYPosition(for: screenType, type: "resolution"))
                         .zIndex(100)
                     }
 
@@ -398,21 +534,6 @@ struct BlackjackView: View {
             // Insurance overlay
             insuranceOverlayView
         }
-        .overlay(
-            Button(action: { dismiss() }) {
-                Image(systemName: "house.fill")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 28, height: 28)
-                    .foregroundColor(.white)
-                    .shadow(radius: 3)
-            }
-            .buttonStyle(ScaleButtonStyle())
-            .padding(.top, -10)
-            .padding(.trailing, 100)
-            .zIndex(100),
-            alignment: .topTrailing
-        )
         .onAppear {
             // Add all dealt cards to flippedCards so they appear face up without animation
             var allCardIDs: Set<UUID> = []

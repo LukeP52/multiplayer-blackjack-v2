@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CardView: View {
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     let card: Card
     let isFaceDown: Bool
     let isTopmostFaceUp: Bool
@@ -11,11 +12,25 @@ struct CardView: View {
     @State private var isFlipped: Bool
     @State private var flipProgress: Double = 0
     @State private var isSliding: Bool = true
-    @State private var slideOffset: CGSize = CGSize(width: 300, height: -300) // Start from top-right corner
+    @State private var slideOffset: CGSize = CGSize(width: 600, height: -300) // Start from top-right corner, will be adjusted
     let isSplitCard: Bool // New property to track if this card is being split
     let isHoleCard: Bool // New property to track if this is the dealer's hole card
     let isInitialAppearance: Bool // New property to control initial appearance animations
     let shouldSlideOut: Bool // New property to control slide-out animation
+    
+    private var isIPad: Bool {
+        horizontalSizeClass == .regular
+    }
+    
+    private var startingOffset: CGSize {
+        let baseWidth: CGFloat = isIPad ? 600 : 300
+        return CGSize(width: baseWidth, height: -300)
+    }
+    
+    private var endingOffset: CGSize {
+        let baseWidth: CGFloat = isIPad ? 1000 : 500
+        return CGSize(width: -baseWidth, height: -500)
+    }
     
     init(card: Card, isFaceDown: Bool, isTopmostFaceUp: Bool, shouldAnimateFlip: Bool, flippedCards: Binding<Set<UUID>>, game: BlackjackGame, isSplitCard: Bool = false, isHoleCard: Bool = false, isInitialAppearance: Bool = false, shouldSlideOut: Bool = false, onFlipComplete: @escaping () -> Void = {}) {
         self.card = card
@@ -74,7 +89,8 @@ struct CardView: View {
                 // Start from off-screen position
                 // If this is a card being dealt to the second split hand, start further to the right
                 let isSecondSplitHand = game.state.activeHandIndex == 1 && game.state.splitCount > 0
-                slideOffset = CGSize(width: isSecondSplitHand ? 450 : 300, height: -300)
+                let extraOffset: CGFloat = isSecondSplitHand ? 150 : 0
+                slideOffset = CGSize(width: startingOffset.width + extraOffset, height: startingOffset.height)
                 // Delay the slide-in animation slightly
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     withAnimation(.easeInOut(duration: 0.4)) {
@@ -101,7 +117,7 @@ struct CardView: View {
         .onChange(of: card) { _, _ in
             // Only reset animation state if this is not a split card
             if !isSplitCard {
-                slideOffset = CGSize(width: 300, height: -300)
+                slideOffset = startingOffset
                 withAnimation(.easeInOut(duration: 0.3)) {
                     slideOffset = .zero
                 }
@@ -113,7 +129,7 @@ struct CardView: View {
             
             // If flippedCards is empty, reset the animation state only for non-split cards
             if newValue.isEmpty && !isSplitCard {
-                slideOffset = CGSize(width: 300, height: -300)
+                slideOffset = startingOffset
                 withAnimation(.easeInOut(duration: 0.3)) {
                     slideOffset = .zero
                 }
@@ -150,7 +166,7 @@ struct CardView: View {
         .onChange(of: shouldSlideOut) { _, newValue in
             if newValue && !isSplitCard {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0.3)) {
-                    slideOffset = CGSize(width: -500, height: -500)
+                    slideOffset = endingOffset
                 }
             }
         }

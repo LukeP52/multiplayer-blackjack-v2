@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PracticeView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @StateObject private var practiceGame: PracticeGame
     @State private var flippedCards: Set<UUID> = []
     @StateObject private var dummyGame = BlackjackGame() // For CardView animations
@@ -17,6 +18,72 @@ struct PracticeView: View {
         _practiceGame = StateObject(wrappedValue: PracticeGame(blackjackGame: blackjackGame))
     }
     
+    private func getScreenType(for geometry: GeometryProxy) -> ScreenType {
+        if horizontalSizeClass == .compact {
+            return .phone
+        } else if geometry.size.width < 900 {
+            return .miniTablet
+        } else {
+            return .tablet
+        }
+    }
+    
+    private func getCardsYPosition(for screenType: ScreenType) -> CGFloat {
+        switch screenType {
+        case .phone: return 0.42
+        case .miniTablet: return 0.47
+        case .tablet: return 0.50
+        }
+    }
+    
+    private func getButtonsYPosition(for screenType: ScreenType) -> CGFloat {
+        switch screenType {
+        case .phone: return 0.78
+        case .miniTablet: return 0.72
+        case .tablet: return 0.68
+        }
+    }
+    
+    private func getProgressBarYPosition(for screenType: ScreenType) -> CGFloat {
+        switch screenType {
+        case .phone: return 0.94
+        case .miniTablet: return 0.90
+        case .tablet: return 0.88
+        }
+    }
+    
+    private func getProgressCountYPosition(for screenType: ScreenType) -> CGFloat {
+        switch screenType {
+        case .phone: return 0.90
+        case .miniTablet: return 0.86
+        case .tablet: return 0.84
+        }
+    }
+    
+    private func getPracticeLabelYPosition(for screenType: ScreenType) -> CGFloat {
+        switch screenType {
+        case .phone: return 0.05
+        case .miniTablet: return 0.12
+        case .tablet: return 0.15
+        }
+    }
+    
+    private func getIconPadding() -> CGFloat {
+        switch horizontalSizeClass {
+        case .compact: return -10
+        case .regular: return 150
+        default: return -10
+        }
+    }
+    
+    private func getButtonWidth(for screenType: ScreenType, geometry: GeometryProxy) -> CGFloat {
+        switch screenType {
+        case .phone: return min(400, geometry.size.width * 0.95)
+        case .miniTablet: return min(450, geometry.size.width * 0.85)
+        case .tablet: return min(500, geometry.size.width * 0.8)
+        }
+    }
+    
     var body: some View {
         ZStack {
             // Background
@@ -25,43 +92,44 @@ struct PracticeView: View {
                 .aspectRatio(contentMode: .fill)
                 .ignoresSafeArea()
             
-            // Info Button (in its own ZStack layer)
+            // Info and Home Icons (in same container for consistent positioning)
             GeometryReader { geometry in
-                Button(action: {
-                    showInfoView = true
-                }) {
-                    Image(systemName: "info.circle.fill")
-                        .resizable()
-                        .frame(width: 28, height: 28)
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 2)
+                HStack {
+                    // Info Button (left side)
+                    Button(action: {
+                        showInfoView = true
+                    }) {
+                        Image(systemName: "info.circle.fill")
+                            .resizable()
+                            .frame(width: 28, height: 28)
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 2)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.leading, 100)
+                    
+                    Spacer()
+                    
+                    // Home Button (right side)
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "house.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 28, height: 28)
+                            .foregroundColor(.white)
+                            .shadow(radius: 3)
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+                    .padding(.trailing, 100)
                 }
-                .buttonStyle(ScaleButtonStyle())
-                .padding(.top, -10)
-                .padding(.leading, 100)
-                .zIndex(100)  // Ensure it's above other elements
-            }
-
-            // Home Button (in its own ZStack layer)
-            GeometryReader { geometry in
-                Button(action: {
-                    dismiss()
-                }) {
-                    Image(systemName: "house.fill")
-                        .resizable()
-                        .frame(width: 28, height: 28)
-                        .foregroundColor(.white)
-                        .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 2)
-                }
-                .buttonStyle(ScaleButtonStyle())
-                .padding(.top, -10)
-                .padding(.trailing, 100)
-                .zIndex(100)  // Ensure it's above other elements
-                .position(x: geometry.size.width - 65, y: 10)  // Adjusted position
+                .padding(.top, getIconPadding())
+                .zIndex(100)  // Ensure both are above other elements
             }
 
             GeometryReader { geometry in
                 ZStack {
+                    let screenType = getScreenType(for: geometry)
+                    
                     // Main Content (cards, actions)
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
@@ -70,7 +138,7 @@ struct PracticeView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: geometry.size.height * 0.55)
-                    .position(x: geometry.size.width / 2, y: geometry.size.height * 0.42)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height * getCardsYPosition(for: screenType))
                     .zIndex(0)
 
                     // Practice Mode Label
@@ -78,13 +146,13 @@ struct PracticeView: View {
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.white.opacity(0.7))
                         .zIndex(100)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.05)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height * getPracticeLabelYPosition(for: screenType))
 
                     // Progress Bar
                     PracticeProgressBar(progress: Double(practiceGame.consecutiveCorrect) / 25.0, barWidth: 300)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .zIndex(50)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.94)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height * getProgressBarYPosition(for: screenType))
 
                     // Progress Count
                     Text("\(practiceGame.consecutiveCorrect)/25")
@@ -93,7 +161,7 @@ struct PracticeView: View {
                         .shadow(color: .black, radius: 2, x: 0, y: 1)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .zIndex(150)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.90)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height * getProgressCountYPosition(for: screenType))
 
                     // Feedback notification overlay
                     if showFeedback && !practiceGame.feedbackMessage.isEmpty {
@@ -149,7 +217,7 @@ struct PracticeView: View {
                         }
                         .buttonStyle(ScaleButtonStyle())
                         .zIndex(200)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.82)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height * getButtonsYPosition(for: screenType))
                     }
 
                     // Action buttons overlay
@@ -187,9 +255,9 @@ struct PracticeView: View {
                                 isFlashing: practiceGame.correctActionToFlash == .hit
                             )
                         }
-                        .frame(width: min(400, geometry.size.width * 0.95))
+                        .frame(width: getButtonWidth(for: screenType, geometry: geometry))
                         .zIndex(100)
-                        .position(x: geometry.size.width / 2, y: geometry.size.height * 0.82)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height * getButtonsYPosition(for: screenType))
                     }
                 }
             }
